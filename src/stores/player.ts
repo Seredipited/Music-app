@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Song } from './types'
 
 export type PlayMode = 'sequence' | 'random' | 'loop'
@@ -16,6 +16,9 @@ export const usePlayerStore = defineStore('player', () => {
   const isMuted = ref(false)
   const isShowPlaylist = ref(false)
 
+  // 音频元素引用（由 App.vue 注入）
+  const audioEl = ref<HTMLAudioElement | null>(null)
+
   const progress = computed(() => {
     if (duration.value === 0) return 0
     return (currentTime.value / duration.value) * 100
@@ -24,24 +27,75 @@ export const usePlayerStore = defineStore('player', () => {
   const hasNext = computed(() => currentIndex.value < playlist.value.length - 1)
   const hasPrev = computed(() => currentIndex.value > 0)
 
+  // 注册音频元素
+  function registerAudio(el: HTMLAudioElement) {
+    audioEl.value = el
+    if (el) {
+      el.volume = volume.value
+      el.muted = isMuted.value
+    }
+  }
+
+  // 卸载音频元素
+  function unregisterAudio() {
+    audioEl.value = null
+  }
+
+  // 同步音频状态
+  function syncAudioState() {
+    const audio = audioEl.value
+    if (!audio) return
+
+    if (currentSong.value && audio.src !== currentSong.value.audio) {
+      audio.src = currentSong.value.audio
+      audio.load()
+    }
+
+    if (isPlaying.value) {
+      audio.play().catch(() => {
+        // 浏览器可能阻止自动播放，静默处理
+      })
+    } else {
+      audio.pause()
+    }
+
+    audio.volume = isMuted.value ? 0 : volume.value
+    audio.muted = isMuted.value
+  }
+
+  // 监听状态变化同步音频
+  watch(currentSong, () => syncAudioState())
+  watch(isPlaying, () => syncAudioState())
+  watch(volume, (v) => {
+    if (audioEl.value && !isMuted.value) {
+      audioEl.value.volume = v
+    }
+  })
+  watch(isMuted, (m) => {
+    if (audioEl.value) {
+      audioEl.value.muted = m
+    }
+  })
+
   function setCurrentSong(song: Song, list: Song[] = []) {
     if (list.length > 0) {
       playlist.value = list
       currentIndex.value = list.findIndex(s => s.id === song.id)
     }
     currentSong.value = song
-    isPlaying.value = true
     currentTime.value = 0
     duration.value = song.duration
+    isPlaying.value = true
   }
 
   function togglePlay() {
+    if (!currentSong.value) return
     isPlaying.value = !isPlaying.value
   }
 
   function playNext() {
     if (playlist.value.length === 0) return
-    
+
     if (playMode.value === 'random') {
       const randomIndex = Math.floor(Math.random() * playlist.value.length)
       currentIndex.value = randomIndex
@@ -53,7 +107,7 @@ export const usePlayerStore = defineStore('player', () => {
       isPlaying.value = false
       return
     }
-    
+
     currentSong.value = playlist.value[currentIndex.value]
     duration.value = playlist.value[currentIndex.value].duration
     currentTime.value = 0
@@ -62,13 +116,13 @@ export const usePlayerStore = defineStore('player', () => {
 
   function playPrev() {
     if (playlist.value.length === 0) return
-    
+
     if (hasPrev.value) {
       currentIndex.value--
     } else {
       currentIndex.value = playlist.value.length - 1
     }
-    
+
     currentSong.value = playlist.value[currentIndex.value]
     duration.value = playlist.value[currentIndex.value].duration
     currentTime.value = 0
@@ -84,7 +138,9 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function setDuration(d: number) {
-    duration.value = d
+    if (d && isFinite(d)) {
+      duration.value = d
+    }
   }
 
   function setVolume(v: number) {
@@ -137,6 +193,10 @@ export const usePlayerStore = defineStore('player', () => {
     progress,
     hasNext,
     hasPrev,
+    audioEl,
+    registerAudio,
+    unregisterAudio,
+    syncAudioState,
     setCurrentSong,
     togglePlay,
     playNext,

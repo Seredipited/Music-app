@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '@/stores/player'
 import { mockSongs } from '@/stores/data'
-import { Play, Pause, Disc3, Flame, TrendingUp, Clock, Music2 } from 'lucide-vue-next'
+import { Play, Pause, Disc3, Flame, Clock, Music2 } from 'lucide-vue-next'
 import type { Song } from '@/stores/types'
+import MusicCard from '@/components/music/MusicCard.vue'
 
 const playerStore = usePlayerStore()
 const allSongs = ref<Song[]>([])
-const activeSongId = ref<number | null>(null)
 
 // 推荐歌曲取前12首
 const recommendedSongs = computed(() => allSongs.value.slice(0, 12))
@@ -17,23 +17,54 @@ const hotSongs = computed(() => allSongs.value)
 // Hero 大封面对应的歌曲
 const heroSong = computed(() => allSongs.value[0] || null)
 
+// ---------- 滚动入场动画 ----------
+const revealedSections = ref(new Set<number>())
+let observer: IntersectionObserver | null = null
+
 onMounted(() => {
   // 模拟延迟加载，触发入场动画
   setTimeout(() => {
     allSongs.value = [...mockSongs]
   }, 100)
+
+  // 滚动入场观察器
+  observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const index = Number((entry.target as HTMLElement).dataset.revealIndex)
+          if (!isNaN(index)) {
+            revealedSections.value.add(index)
+            revealedSections.value = new Set(revealedSections.value)
+          }
+          observer?.unobserve(entry.target)
+        }
+      })
+    },
+    { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+  )
+
+  // 观察滚动动画元素
+  document.querySelectorAll('[data-reveal]').forEach((el) => {
+    observer?.observe(el)
+  })
 })
 
-function handlePlaySong(song: Song) {
-  activeSongId.value = song.id
-  playerStore.setCurrentSong(song, allSongs.value)
+onUnmounted(() => {
+  observer?.disconnect()
+})
+
+function isRevealed(index: number): boolean {
+  return revealedSections.value.has(index)
+}
+
+// ---------- 播放逻辑 ----------
+function handlePlaySong(song: Song, list?: Song[]) {
+  playerStore.setCurrentSong(song, list || allSongs.value)
 }
 
 function handleTogglePlay() {
   playerStore.togglePlay()
-  if (playerStore.currentSong) {
-    activeSongId.value = playerStore.currentSong.id
-  }
 }
 
 function handlePlayHero() {
@@ -45,6 +76,7 @@ function handlePlayHero() {
   }
 }
 
+// ---------- 工具函数 ----------
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
@@ -59,33 +91,41 @@ function isPlayingSong(songId: number) {
   return isCurrentSong(songId) && playerStore.isPlaying
 }
 
-// 获取推荐区网格的入场动画类名
+// 网格卡片入场动画
 function gridAnimClass(index: number): string {
   const anims = [
-    'animate-slide-up-d1', 'animate-slide-up-d2', 'animate-slide-up-d3',
-    'animate-slide-up-d4', 'animate-slide-up-d5', 'animate-slide-up',
-    'animate-slide-up-d1', 'animate-slide-up-d2', 'animate-slide-up-d3',
-    'animate-slide-up-d4', 'animate-slide-up-d5', 'animate-slide-up',
+    'animate-slide-in-up-d1', 'animate-slide-in-up-d2',
+    'animate-slide-in-up-d3', 'animate-slide-in-up-d4',
+    'animate-slide-in-up-d5', 'animate-slide-in-up-d6',
   ]
-  return anims[index] || 'animate-slide-up'
+  return anims[index % anims.length] || 'animate-slide-in-up'
+}
+
+// 是否显示横向大卡片（每隔6张出现一张占两格大卡片）
+function isLargeCard(index: number): boolean {
+  return index === 5 || index === 11
 }
 </script>
 
 <template>
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8">
-    <!-- ==================== Hero 英雄区 ==================== -->
-    <section class="relative overflow-hidden rounded-2xl hero-gradient border border-white/5 mb-10 mt-6">
-      <!-- 舞台灯效：右上角超大模糊圆 -->
-      <div class="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-indigo-500/20 blur-3xl pointer-events-none"></div>
-      <div class="absolute top-20 right-60 w-[300px] h-[300px] rounded-full bg-purple-500/10 blur-3xl pointer-events-none"></div>
-      <!-- 左下氛围光 -->
-      <div class="absolute -bottom-20 -left-20 w-[350px] h-[350px] rounded-full bg-indigo-600/8 blur-3xl pointer-events-none"></div>
+  <div class="px-6 lg:px-10 pb-8 pt-6 space-y-12">
+    <!-- ==================== Hero 英雄区 — 破界唱片 ==================== -->
+    <section
+      data-reveal
+      :data-reveal-index="0"
+      class="relative overflow-visible rounded-2xl hero-gradient border border-white/5"
+      :class="{ 'animate-slide-in-up': isRevealed(0) }"
+    >
+      <!-- 舞台灯效 — 多层模糊光晕 -->
+      <div class="absolute -top-32 -right-32 w-[450px] h-[450px] rounded-full bg-primary-500/15 blur-[80px] pointer-events-none"></div>
+      <div class="absolute top-16 right-48 w-[250px] h-[250px] rounded-full bg-primary-400/8 blur-[60px] pointer-events-none"></div>
+      <div class="absolute -bottom-16 -left-16 w-[300px] h-[300px] rounded-full bg-primary-600/6 blur-[70px] pointer-events-none"></div>
 
-      <div class="relative z-10 flex flex-col lg:flex-row items-center gap-8 lg:gap-16 p-8 sm:p-12 lg:p-16">
-        <!-- 左侧：大封面 -->
-        <div class="relative shrink-0">
+      <div class="relative z-10 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 px-8 sm:px-12 lg:px-16 py-10 lg:py-14">
+        <!-- 左侧：大封面 — 破界探出 -->
+        <div class="relative shrink-0 -mt-12 lg:-mt-16 z-20">
           <div
-            class="w-52 h-52 sm:w-64 sm:h-64 rounded-2xl overflow-hidden shadow-2xl shadow-indigo-900/40 border border-white/10"
+            class="w-44 h-44 sm:w-52 sm:h-52 rounded-2xl overflow-hidden shadow-2xl shadow-primary-900/40 border-2 border-white/10"
             :class="{ 'animate-float': !playerStore.isPlaying }"
           >
             <img
@@ -96,70 +136,67 @@ function gridAnimClass(index: number): string {
             />
             <div
               v-else
-              class="w-full h-full bg-white/5 flex items-center justify-center"
+              class="w-full h-full bg-white/[0.03] flex items-center justify-center"
             >
-              <Music2 class="w-16 h-16 text-white/10" />
+              <Music2 class="w-14 h-14 text-white/5" />
             </div>
           </div>
         </div>
 
-        <!-- 中间：旋转唱片 -->
-        <div class="relative shrink-0 flex items-center justify-center">
-          <!-- 脉冲光晕 -->
+        <!-- 中间：黑胶唱片 — 破界探出 + 发光晕 -->
+        <div class="relative shrink-0 flex items-center justify-center z-10 -mt-4 lg:-mt-8">
+          <!-- 发光晕 — 播放时更强 -->
           <div
-            class="absolute w-56 h-56 sm:w-64 sm:h-64 rounded-full animate-pulse-glow pointer-events-none"
-          ></div>
-          <!-- 呼吸光晕 — 更外层 -->
-          <div
-            class="absolute w-72 h-72 sm:w-80 sm:h-80 rounded-full animate-pulse-glow-slow pointer-events-none opacity-60"
+            class="absolute w-64 h-64 sm:w-72 sm:h-72 rounded-full pointer-events-none"
+            :class="playerStore.isPlaying ? 'animate-vinyl-glow' : 'animate-pulse-glow'"
           ></div>
 
           <!-- 唱片主体 -->
           <div
-            class="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full"
+            class="relative w-52 h-52 sm:w-60 sm:h-60 rounded-full will-change-transform"
             :class="{ 'animate-spin-slow': playerStore.isPlaying }"
           >
             <!-- 唱片底纹 -->
             <div
-              class="absolute inset-0 rounded-full vinyl-texture bg-vinyl shadow-2xl shadow-indigo-900/30 border-2 border-white/5"
+              class="absolute inset-0 rounded-full vinyl-texture bg-vinyl shadow-2xl shadow-primary-900/30 border-2 border-white/[0.04]"
             ></div>
             <!-- 封面贴片 -->
             <div
               v-if="heroSong"
-              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-white/10 z-10"
+              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[45%] h-[45%] rounded-full overflow-hidden border-2 border-white/[0.06] z-10"
             >
               <img :src="heroSong.cover" :alt="heroSong.name" class="w-full h-full object-cover" />
             </div>
             <!-- 中心轴孔 -->
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-vinyl-dark border border-white/10 z-20"></div>
-            <!-- 唱片沟槽线 -->
-            <div class="absolute inset-[15%] rounded-full border border-white/[0.03] opacity-50 pointer-events-none"></div>
-            <div class="absolute inset-[30%] rounded-full border border-white/[0.03] opacity-40 pointer-events-none"></div>
-            <div class="absolute inset-[45%] rounded-full border border-white/[0.025] opacity-30 pointer-events-none"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#161d31] border border-white/[0.08] z-20"></div>
+            <!-- 沟槽线 -->
+            <div class="absolute inset-[12%] rounded-full border border-white/[0.02] opacity-40 pointer-events-none"></div>
+            <div class="absolute inset-[28%] rounded-full border border-white/[0.02] opacity-30 pointer-events-none"></div>
+            <div class="absolute inset-[44%] rounded-full border border-white/[0.015] opacity-20 pointer-events-none"></div>
           </div>
 
           <!-- 唱臂装饰 -->
           <div
-            class="absolute -top-2 right-[-10px] w-1.5 h-20 bg-gradient-to-b from-white/40 to-white/10 rounded-full origin-top transform rotate-[25deg] pointer-events-none hidden sm:block"
+            class="absolute -top-1 right-[-8px] w-1 h-16 bg-gradient-to-b from-white/30 to-white/8 rounded-full origin-top transform rotate-[25deg] pointer-events-none hidden sm:block"
             style="transform-origin: top center;"
           >
-            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-white/30"></div>
+            <div class="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-white/20"></div>
           </div>
         </div>
 
-        <!-- 右侧：文案 + 操作 -->
-        <div class="flex-1 text-center lg:text-left">
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 text-glow leading-tight">
+        <!-- 右侧：文案 + CTA -->
+        <div class="flex-1 text-left z-10">
+          <h1 class="text-5xl font-bold text-white mb-3 text-glow leading-tight">
             发现好音乐
           </h1>
-          <p class="text-white/50 text-sm sm:text-base max-w-md mb-6 mx-auto lg:mx-0 leading-relaxed">
-            探索海量华语金曲，沉浸式黑胶唱片体验，随时随地畅听你喜爱的音乐。
+          <p class="text-ink-secondary text-base max-w-md leading-relaxed mb-6">
+            探索海量华语金曲，沉浸式黑胶唱片体验，<br />随时随地畅听你喜爱的音乐。
           </p>
-          <div class="flex flex-wrap items-center gap-3 justify-center lg:justify-start">
+          <div class="flex flex-wrap items-center gap-3">
             <button
               v-if="!playerStore.isPlaying || playerStore.currentSong?.id !== heroSong?.id"
               @click="handlePlayHero"
-              class="px-7 py-3 gradient-primary rounded-full font-medium text-white flex items-center gap-2.5 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all hover:scale-105 active:scale-95"
+              class="px-7 py-3 gradient-primary rounded-full font-medium text-white flex items-center gap-2.5 shadow-lg shadow-primary-500/25 hover:shadow-primary-500/45 transition-all hover:scale-105 active:scale-95"
               :disabled="!heroSong"
             >
               <Play class="w-5 h-5" fill="currentColor" />
@@ -168,12 +205,12 @@ function gridAnimClass(index: number): string {
             <button
               v-else
               @click="handleTogglePlay"
-              class="px-7 py-3 gradient-primary rounded-full font-medium text-white flex items-center gap-2.5 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all hover:scale-105 active:scale-95"
+              class="px-7 py-3 gradient-primary rounded-full font-medium text-white flex items-center gap-2.5 shadow-lg shadow-primary-500/25 hover:shadow-primary-500/45 transition-all hover:scale-105 active:scale-95"
             >
               <Pause class="w-5 h-5" fill="currentColor" />
               暂停播放
             </button>
-            <span v-if="heroSong" class="text-sm text-white/30">
+            <span v-if="heroSong" class="text-sm text-ink-secondary/40">
               {{ heroSong.name }} — {{ heroSong.artist }}
             </span>
           </div>
@@ -181,99 +218,68 @@ function gridAnimClass(index: number): string {
       </div>
     </section>
 
-    <!-- ==================== 为你推荐 — 2×6 宫格 ==================== -->
-    <section class="mb-12">
-      <!-- 标题栏 -->
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-white flex items-center gap-2.5">
-          <Disc3 class="w-5 h-5 text-indigo-400" />
+    <!-- ==================== 为你推荐 — 网格 + 横向大卡片 ==================== -->
+    <section
+      data-reveal
+      :data-reveal-index="1"
+      :class="{ 'animate-slide-in-up': isRevealed(1) }"
+    >
+      <!-- 区块标题 -->
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2.5 text-left">
+          <Disc3 class="w-5 h-5 text-primary-400" />
           为你推荐
         </h2>
-        <div class="flex items-center gap-2 text-xs text-white/30">
-          <TrendingUp class="w-3.5 h-3.5" />
-          <span>共 {{ recommendedSongs.length }} 首</span>
-        </div>
+        <span class="text-xs text-ink-muted">共 {{ recommendedSongs.length }} 首</span>
       </div>
 
-      <!-- 2×6 宫格 -->
+      <!-- 错落网格：4列，部分卡片横跨2列 -->
       <div
         v-if="recommendedSongs.length > 0"
-        class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-5"
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"
       >
-        <div
-          v-for="(song, index) in recommendedSongs"
-          :key="song.id"
-          :class="gridAnimClass(index)"
-          class="flex flex-col items-center gap-2.5 cursor-pointer group"
-          @click="handlePlaySong(song)"
-        >
-          <!-- 封面图片 — 无卡片包裹，仅圆角方形 -->
-          <div class="relative w-full aspect-square rounded-xl overflow-hidden shadow-lg shadow-black/20 group-hover:shadow-indigo-500/20 transition-all duration-300">
-            <img
-              :src="song.cover"
-              :alt="song.name"
-              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              :class="{ 'scale-105': isCurrentSong(song.id) }"
-            />
-
-            <!-- Hover 播放遮罩 -->
-            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
-              <div class="w-11 h-11 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-50 group-hover:scale-100 shadow-lg">
-                <Pause
-                  v-if="isPlayingSong(song.id)"
-                  class="w-5 h-5 text-indigo-600"
-                />
-                <Play
-                  v-else
-                  class="w-5 h-5 text-indigo-600 ml-0.5"
-                />
-              </div>
-            </div>
-
-            <!-- 正在播放指示器 -->
-            <div
-              v-if="isPlayingSong(song.id)"
-              class="absolute top-2 right-2 flex items-center gap-0.5 px-2 py-1 bg-indigo-500/90 backdrop-blur-sm rounded-full"
-            >
-              <span class="w-0.5 h-2.5 bg-white rounded-full animate-pulse"></span>
-              <span class="w-0.5 h-2 bg-white rounded-full animate-pulse" style="animation-delay: 0.15s"></span>
-              <span class="w-0.5 h-3 bg-white rounded-full animate-pulse" style="animation-delay: 0.3s"></span>
-              <span class="w-0.5 h-2 bg-white rounded-full animate-pulse" style="animation-delay: 0.45s"></span>
-            </div>
+        <template v-for="(song, index) in recommendedSongs" :key="song.id">
+          <!-- 横向大卡片 — 跨2列 -->
+          <div
+            v-if="isLargeCard(index)"
+            :class="gridAnimClass(index)"
+            class="col-span-2"
+          >
+            <MusicCard :song="song" :horizontal="true" :index="index" />
           </div>
-
-          <!-- 歌名 & 歌手 -->
-          <div class="w-full min-w-0 text-center">
-            <p
-              class="text-sm font-medium truncate transition-colors duration-200"
-              :class="isCurrentSong(song.id) ? 'text-indigo-400' : 'text-white/80 group-hover:text-white'"
-            >
-              {{ song.name }}
-            </p>
-            <p class="text-xs text-white/30 truncate mt-0.5">{{ song.artist }}</p>
+          <!-- 普通卡片 -->
+          <div
+            v-else
+            :class="gridAnimClass(index)"
+          >
+            <MusicCard :song="song" :horizontal="false" :index="index" />
           </div>
-        </div>
+        </template>
       </div>
 
       <!-- 空状态 -->
       <div
         v-else
-        class="text-center py-16 text-white/20"
+        class="text-center py-16 text-ink-muted/15"
       >
         <Disc3 class="w-12 h-12 mx-auto mb-3 opacity-30" />
-        <p class="text-sm">暂无推荐歌曲</p>
+        <p class="text-sm text-ink-secondary">暂无推荐歌曲</p>
       </div>
     </section>
 
     <!-- ==================== 热门歌曲 — 表格列表 ==================== -->
-    <section>
-      <!-- 标题栏 -->
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-white flex items-center gap-2.5">
-          <Flame class="w-5 h-5 text-indigo-400" />
+    <section
+      data-reveal
+      :data-reveal-index="2"
+      :class="{ 'animate-slide-in-up': isRevealed(2) }"
+    >
+      <!-- 区块标题 -->
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2.5 text-left">
+          <Flame class="w-5 h-5 text-primary-400" />
           热门歌曲
         </h2>
-        <span class="text-xs text-white/30">{{ hotSongs.length }} 首歌</span>
+        <span class="text-xs text-ink-muted">{{ hotSongs.length }} 首歌</span>
       </div>
 
       <!-- 表格 -->
@@ -282,46 +288,47 @@ function gridAnimClass(index: number): string {
         class="overflow-hidden rounded-xl border border-white/5"
       >
         <!-- 表头 -->
-        <div class="flex items-center px-4 sm:px-6 py-3 text-xs font-medium text-white/30 bg-white/[0.02] border-b border-white/5">
+        <div class="flex items-center px-4 sm:px-6 py-3 text-xs font-medium text-ink-muted bg-white/[0.015] border-b border-white/5">
           <span class="w-10 text-center shrink-0">#</span>
           <span class="flex-1 min-w-0 pl-2">歌曲</span>
-          <span class="w-32 hidden sm:block shrink-0">歌手</span>
-          <span class="w-40 hidden md:block shrink-0">专辑</span>
+          <span class="w-36 hidden sm:block shrink-0">歌手</span>
+          <span class="w-44 hidden md:block shrink-0">专辑</span>
           <span class="w-20 text-right shrink-0">
             <Clock class="w-3.5 h-3.5 inline-block" />
           </span>
         </div>
 
         <!-- 表体 -->
-        <div class="table-stripe">
+        <div>
           <div
             v-for="(song, index) in hotSongs"
             :key="song.id"
-            class="flex items-center px-4 sm:px-6 py-2.5 transition-all duration-150 cursor-pointer group/row"
+            class="flex items-center px-4 sm:px-6 py-2.5 transition-all duration-150 cursor-pointer"
             :class="[
+              index % 2 === 0 ? 'bg-white/[0.01]' : '',
               isCurrentSong(song.id)
-                ? 'bg-indigo-500/10'
-                : 'hover:bg-white/[0.04]',
-              `animate-fade-in-d${Math.min((index % 3) + 1, 3)}`
+                ? 'bg-primary-500/8'
+                : 'hover:bg-white/[0.03]',
+              `animate-fade-in delay-${Math.min(index * 30, 300)}`
             ]"
             @click="handlePlaySong(song)"
           >
-            <!-- 序号 / 播放图标 -->
+            <!-- 序号 -->
             <span class="w-10 text-center shrink-0">
               <span
                 v-if="isPlayingSong(song.id)"
                 class="inline-flex items-center justify-center"
               >
                 <span class="flex items-end gap-px h-3">
-                  <span class="w-0.5 bg-indigo-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite]" style="height:60%"></span>
-                  <span class="w-0.5 bg-indigo-400 rounded-full animate-[pulse_0.4s_ease-in-out_0.15s_infinite]" style="height:100%"></span>
-                  <span class="w-0.5 bg-indigo-400 rounded-full animate-[pulse_0.4s_ease-in-out_0.3s_infinite]" style="height:40%"></span>
+                  <span class="w-0.5 bg-primary-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite]" style="height:60%"></span>
+                  <span class="w-0.5 bg-primary-400 rounded-full animate-[pulse_0.4s_ease-in-out_0.15s_infinite]" style="height:100%"></span>
+                  <span class="w-0.5 bg-primary-400 rounded-full animate-[pulse_0.4s_ease-in-out_0.3s_infinite]" style="height:40%"></span>
                 </span>
               </span>
               <span
                 v-else
                 class="text-sm"
-                :class="isCurrentSong(song.id) ? 'text-indigo-400 font-medium' : 'text-white/30 group-hover/row:text-white/60'"
+                :class="isCurrentSong(song.id) ? 'text-primary-400 font-medium' : 'text-ink-muted'"
               >
                 {{ index + 1 }}
               </span>
@@ -329,34 +336,36 @@ function gridAnimClass(index: number): string {
 
             <!-- 歌曲信息 -->
             <div class="flex-1 min-w-0 flex items-center gap-3 pl-2">
-              <img
-                :src="song.cover"
-                :alt="song.name"
-                class="w-10 h-10 rounded-lg object-cover shrink-0 shadow-md transition-transform duration-300 group-hover/row:scale-105"
-              />
-              <div class="min-w-0">
+              <div class="cover-mask w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-md">
+                <img
+                  :src="song.cover"
+                  :alt="song.name"
+                  class="w-full h-full object-cover transition-transform duration-300"
+                />
+              </div>
+              <div class="min-w-0 text-left">
                 <p
-                  class="text-sm font-medium truncate transition-colors duration-200"
-                  :class="isCurrentSong(song.id) ? 'text-indigo-400' : 'text-white/80 group-hover/row:text-white'"
+                  class="text-base font-medium truncate transition-colors duration-200"
+                  :class="isCurrentSong(song.id) ? 'text-primary-300' : 'text-white/90'"
                 >
                   {{ song.name }}
                 </p>
-                <p class="text-xs text-white/30 truncate sm:hidden">{{ song.artist }}</p>
+                <p class="text-sm text-ink-secondary truncate sm:hidden">{{ song.artist }}</p>
               </div>
             </div>
 
             <!-- 歌手 -->
-            <span class="w-32 hidden sm:block shrink-0 text-sm text-white/40 truncate group-hover/row:text-white/60 transition-colors">
+            <span class="w-36 hidden sm:block shrink-0 text-sm text-ink-secondary truncate">
               {{ song.artist }}
             </span>
 
             <!-- 专辑 -->
-            <span class="w-40 hidden md:block shrink-0 text-sm text-white/25 truncate group-hover/row:text-white/45 transition-colors">
+            <span class="w-44 hidden md:block shrink-0 text-sm text-ink-muted truncate">
               {{ song.album }}
             </span>
 
             <!-- 时长 -->
-            <span class="w-20 text-right shrink-0 text-sm text-white/25 group-hover/row:text-white/45 transition-colors">
+            <span class="w-20 text-right shrink-0 text-sm text-ink-muted">
               {{ formatTime(song.duration) }}
             </span>
           </div>
@@ -366,10 +375,10 @@ function gridAnimClass(index: number): string {
       <!-- 空状态 -->
       <div
         v-else
-        class="text-center py-16 text-white/20"
+        class="text-center py-16 text-ink-muted/15"
       >
         <Flame class="w-12 h-12 mx-auto mb-3 opacity-30" />
-        <p class="text-sm">暂无热门歌曲</p>
+        <p class="text-sm text-ink-secondary">暂无热门歌曲</p>
       </div>
     </section>
   </div>

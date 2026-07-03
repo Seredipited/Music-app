@@ -7,41 +7,49 @@ export default {
   theme: {
     extend: {
       colors: {
+        // 新主色体系：靛蓝 #818cf8
         primary: {
-          50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74',
-          400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c',
-          800: '#9a3412', 900: '#7c2d12', 950: '#431407',
+          50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+          400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+          800: '#3730a3', 900: '#312e81', 950: '#1e1b4b',
         },
-        warm: {
-          50: '#fefce8', 100: '#fef9c3', 200: '#fef08a', 300: '#fde047',
-          400: '#facc15', 500: '#eab308', 600: '#ca8a04', 700: '#a16207',
-          800: '#854d0e', 900: '#713f12', 950: '#422006',
+        // 表面色系
+        surface: {
+          DEFAULT: '#161d31',
+          50: '#283352',
+          100: '#232d49',
+          200: '#1e2746',
+          300: '#1a223d',
+          400: '#161d31',
+          500: '#131b2c',
+          600: '#101827',
+          700: '#2d3a5c',
+          800: '#38476e',
+          900: '#94a3b8',
+        },
+        // 文字色系
+        ink: {
+          DEFAULT: '#ffffff',
+          secondary: '#94a3b8',
+          muted: '#64748b',
+        },
+        // 保留管理后台色系（earth + admin 别名）
+        admin: {
+          50: '#faf5f0', 100: '#f5ebe0', 200: '#e8ddd0', 300: '#d4c4b0',
+          400: '#c4a882', 500: '#b8956f', 600: '#a67c52', 700: '#8b6441',
+          800: '#725338', 900: '#5d452e', 950: '#3d2b1e',
         },
         earth: {
           50: '#faf5f0', 100: '#f5ebe0', 200: '#e8ddd0', 300: '#d4c4b0',
           400: '#c4a882', 500: '#b8956f', 600: '#a67c52', 700: '#8b6441',
           800: '#725338', 900: '#5d452e', 950: '#3d2b1e',
         },
-        dark: {
-          50: '#faf9f7', 100: '#f5f0eb', 200: '#e8ddd0', 300: '#d4c4b0',
-          400: '#a89a85', 500: '#8b7a65', 600: '#5c4d3d', 700: '#3d3228',
-          800: '#2a2118', 900: '#1a1510', 950: '#0f0c08',
-        },
-        // 深蓝渐变色系 — 用于 gradient-bg
+        // 保留深色系用于向后兼容
         deep: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#3730a3',
-          800: '#1e1b4b',
-          900: '#13102e',
-          950: '#0b0821',
+          50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+          400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#3730a3',
+          800: '#1e1b4b', 900: '#13102e', 950: '#0b0821',
         },
-        // 唱片/黑胶相关色
         vinyl: {
           light: '#2a2a3a',
           DEFAULT: '#1a1a2e',
@@ -49,27 +57,27 @@ export default {
         }
       },
       animation: {
-        'spin-slow': 'spin 3s linear infinite',
+        'spin-slow': 'spin 4s linear infinite',
         'spin-slower': 'spin 8s linear infinite',
         'pulse-glow': 'pulse-glow 2.5s ease-in-out infinite',
         'pulse-glow-slow': 'pulse-glow 3.5s ease-in-out infinite',
         'slide-up': 'slide-up 0.5s ease-out both',
-        'slide-up-d1': 'slide-up 0.5s ease-out 0.05s both',
-        'slide-up-d2': 'slide-up 0.5s ease-out 0.1s both',
-        'slide-up-d3': 'slide-up 0.5s ease-out 0.15s both',
-        'slide-up-d4': 'slide-up 0.5s ease-out 0.2s both',
-        'slide-up-d5': 'slide-up 0.5s ease-out 0.25s both',
         'fade-in': 'fade-in 0.4s ease-out both',
-        'fade-in-d1': 'fade-in 0.4s ease-out 0.1s both',
-        'fade-in-d2': 'fade-in 0.4s ease-out 0.2s both',
-        'fade-in-d3': 'fade-in 0.4s ease-out 0.3s both',
         'float': 'float 4s ease-in-out infinite',
-        'breathe': 'breathe 3s ease-in-out infinite',
+        'card-lift': 'card-lift 0.3s ease-out forwards',
+        'vinyl-glow': 'vinyl-glow 3s ease-in-out infinite',
+        'slide-in-up': 'slide-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'slide-in-up-d1': 'slide-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both',
+        'slide-in-up-d2': 'slide-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both',
+        'slide-in-up-d3': 'slide-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both',
+        'slide-in-up-d4': 'slide-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both',
+        'slide-in-up-d5': 'slide-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both',
+        'slide-in-up-d6': 'slide-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both',
       },
       keyframes: {
         'pulse-glow': {
-          '0%, 100%': { boxShadow: '0 0 30px rgba(99, 102, 241, 0.3), 0 0 60px rgba(99, 102, 241, 0.1)' },
-          '50%': { boxShadow: '0 0 50px rgba(99, 102, 241, 0.5), 0 0 100px rgba(99, 102, 241, 0.25)' },
+          '0%, 100%': { boxShadow: '0 0 30px rgba(129, 140, 248, 0.3), 0 0 60px rgba(129, 140, 248, 0.1)' },
+          '50%': { boxShadow: '0 0 60px rgba(129, 140, 248, 0.5), 0 0 120px rgba(129, 140, 248, 0.25)' },
         },
         'slide-up': {
           '0%': { transform: 'translateY(30px)', opacity: '0' },
@@ -83,9 +91,23 @@ export default {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-10px)' },
         },
-        'breathe': {
-          '0%, 100%': { transform: 'scale(1)', opacity: '0.8' },
-          '50%': { transform: 'scale(1.05)', opacity: '1' },
+        'card-lift': {
+          '0%': { transform: 'translateY(0)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
+          '100%': { transform: 'translateY(-8px)', boxShadow: '0 16px 32px rgba(129,140,248,0.2)' },
+        },
+        'vinyl-glow': {
+          '0%, 100%': { 
+            boxShadow: '0 0 40px rgba(129,140,248,0.3), 0 0 80px rgba(129,140,248,0.15), 0 0 120px rgba(129,140,248,0.05)',
+            transform: 'scale(1)',
+          },
+          '50%': { 
+            boxShadow: '0 0 60px rgba(129,140,248,0.5), 0 0 120px rgba(129,140,248,0.3), 0 0 180px rgba(129,140,248,0.1)',
+            transform: 'scale(1.02)',
+          },
+        },
+        'slide-in-up': {
+          '0%': { transform: 'translateY(40px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         },
       },
     },

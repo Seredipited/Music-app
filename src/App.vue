@@ -2,14 +2,17 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '@/components/layout/Sidebar.vue'
+import SideNav from '@/components/layout/SideNav.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import { User, LogOut, Monitor } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { usePlayerStore } from '@/stores/player'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
 
 const isAdminRoute = computed(() => route.path.startsWith('/admin'))
 const isLoginRoute = computed(() => route.path === '/login')
@@ -17,6 +20,9 @@ const isLoginRoute = computed(() => route.path === '/login')
 const activeMenu = ref('songs')
 const showUserDropdown = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
+
+// 全局音频元素
+const audioRef = ref<HTMLAudioElement | null>(null)
 
 const routeToMenuMap: Record<string, string> = {
   '/admin/songs': 'songs',
@@ -31,19 +37,45 @@ watch(() => route.path, (path) => {
   activeMenu.value = routeToMenuMap[path] || 'songs'
 }, { immediate: true })
 
+// 音频事件处理
+function handleTimeUpdate() {
+  if (audioRef.value) {
+    playerStore.setProgress(audioRef.value.currentTime)
+  }
+}
+
+function handleLoadedMetadata() {
+  if (audioRef.value && isFinite(audioRef.value.duration)) {
+    playerStore.setDuration(audioRef.value.duration)
+  }
+}
+
+function handleAudioEnded() {
+  playerStore.playNext()
+}
+
+function handleAudioError() {
+  console.warn('音频加载失败:', playerStore.currentSong?.audio)
+}
+
+// 注册音频元素到 player store
+onMounted(() => {
+  if (audioRef.value) {
+    playerStore.registerAudio(audioRef.value)
+  }
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  playerStore.unregisterAudio()
+  document.removeEventListener('click', handleClickOutside)
+})
+
 function handleClickOutside(event: MouseEvent) {
   if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
     showUserDropdown.value = false
   }
 }
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
 
 function handleLogout() {
   authStore.logout()
@@ -54,6 +86,17 @@ function handleLogout() {
 function handleGoToFrontend() {
   showUserDropdown.value = false
   router.push('/')
+}
+
+// 进度条拖拽
+function handleSeek(event: MouseEvent) {
+  if (!audioRef.value) return
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const percent = (event.clientX - rect.left) / rect.width
+  const time = percent * playerStore.duration
+  audioRef.value.currentTime = time
+  playerStore.setProgress(time)
 }
 </script>
 
@@ -105,26 +148,47 @@ function handleGoToFrontend() {
         <main class="flex-1 min-h-0 overflow-auto">
           <RouterView />
         </main>
-        <AppFooter />
+        <AppFooter @seek="handleSeek" />
       </div>
     </div>
   </template>
 
-  <!-- Login Page — fullscreen standalone -->
+  <!-- Login Page -->
   <template v-else-if="isLoginRoute">
     <div class="h-screen">
       <RouterView />
     </div>
   </template>
 
-  <!-- Frontend Layout — 经典三栏弹性布局 -->
+  <!-- Frontend Layout — 侧边栏 + 顶部导航 + 内容区 + 底部播放栏 -->
   <template v-else>
-    <div class="h-screen flex flex-col gradient-bg">
-      <AppHeader />
-      <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-        <RouterView />
-      </main>
-      <AppFooter />
+    <div class="h-screen flex flex-col">
+      <div class="flex flex-1 min-h-0">
+        <!-- 左侧固定侧边栏 -->
+        <SideNav />
+        
+        <!-- 右侧内容区 -->
+        <div class="flex-1 flex flex-col min-h-0 min-w-0">
+          <AppHeader />
+          <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+            <RouterView />
+          </main>
+        </div>
+      </div>
+      
+      <!-- 底部播放栏 — 悬浮毛玻璃 -->
+      <AppFooter @seek="handleSeek" />
     </div>
+
+    <!-- 全局音频元素 -->
+    <audio
+      ref="audioRef"
+      @timeupdate="handleTimeUpdate"
+      @loadedmetadata="handleLoadedMetadata"
+      @ended="handleAudioEnded"
+      @error="handleAudioError"
+      @play="() => { if (!playerStore.isPlaying) playerStore.togglePlay() }"
+      @pause="() => { if (playerStore.isPlaying) playerStore.togglePlay() }"
+    ></audio>
   </template>
 </template>

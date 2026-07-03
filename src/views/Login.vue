@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { Music2, Lock, User } from 'lucide-vue-next'
+import { Music2, Lock, User, ArrowLeft } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -41,56 +41,57 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-[#121212] px-4">
-    <div class="w-full max-w-md bg-earth-800/50 border border-earth-700/50 rounded-2xl p-8">
+  <div class="min-h-screen flex items-center justify-center px-4" style="background-color: #161d31;">
+    <div class="w-full max-w-md bg-surface-200/60 border border-white/5 rounded-2xl p-8 backdrop-blur-xl">
       <div class="flex flex-col items-center mb-8">
-        <div class="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mb-4">
+        <div class="w-16 h-16 rounded-xl gradient-primary flex items-center justify-center mb-4 shadow-lg shadow-primary-500/25">
           <Music2 class="w-8 h-8 text-white" />
         </div>
-        <h1 class="text-2xl font-bold text-earth-100">管理员登录</h1>
-        <p class="text-earth-400 text-sm mt-2">音乐管理系统</p>
+        <h1 class="text-2xl font-bold text-white">管理员登录</h1>
+        <p class="text-ink-secondary text-sm mt-2">音乐管理系统</p>
       </div>
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <label class="block text-sm text-earth-300 mb-1.5">用户名</label>
+          <label class="block text-sm text-ink-secondary mb-1.5">用户名</label>
           <div class="relative">
-            <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-earth-500" />
+            <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
             <input
               v-model="username"
               type="text"
               placeholder="请输入用户名"
-              class="w-full pl-10 pr-4 py-2.5 bg-earth-900/50 border border-earth-700/50 rounded-xl text-earth-100 focus:outline-none focus:border-primary/50 transition-colors"
+              class="w-full pl-10 pr-4 py-2.5 bg-surface-400/50 border border-white/5 rounded-xl text-white focus:outline-none focus:border-primary-400/40 focus:bg-surface-300/50 transition-colors placeholder:text-ink-muted/40"
             />
           </div>
         </div>
 
         <div>
-          <label class="block text-sm text-earth-300 mb-1.5">密码</label>
+          <label class="block text-sm text-ink-secondary mb-1.5">密码</label>
           <div class="relative">
-            <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-earth-500" />
+            <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
             <input
               v-model="password"
               type="password"
               placeholder="请输入密码"
-              class="w-full pl-10 pr-4 py-2.5 bg-earth-900/50 border border-earth-700/50 rounded-xl text-earth-100 focus:outline-none focus:border-primary/50 transition-colors"
+              class="w-full pl-10 pr-4 py-2.5 bg-surface-400/50 border border-white/5 rounded-xl text-white focus:outline-none focus:border-primary-400/40 focus:bg-surface-300/50 transition-colors placeholder:text-ink-muted/40"
             />
           </div>
         </div>
 
-        <p v-if="errorMsg" class="text-red-400 text-sm">{{ errorMsg }}</p>
+        <p v-if="errorMsg" class="text-rose-400 text-sm">{{ errorMsg }}</p>
 
         <button
           type="submit"
           :disabled="isLoading"
-          class="w-full py-2.5 gradient-primary rounded-xl text-white font-medium hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-60"
+          class="w-full py-2.5 gradient-primary rounded-xl text-white font-medium hover:shadow-lg hover:shadow-primary-500/30 transition-all disabled:opacity-60"
         >
           {{ isLoading ? '登录中...' : '登录' }}
         </button>
       </form>
 
       <div class="mt-6 text-center">
-        <RouterLink to="/" class="text-sm text-earth-400 hover:text-primary transition-colors">
+        <RouterLink to="/" class="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-primary-300 transition-colors">
+          <ArrowLeft class="w-3.5 h-3.5" />
           返回前端首页
         </RouterLink>
       </div>
