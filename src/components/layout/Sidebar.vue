@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Music, Tag, Bookmark, Users, Disc, BarChart3 } from 'lucide-vue-next'
 
 const props = withDefaults(defineProps<{
@@ -12,6 +12,8 @@ const emit = defineEmits<{
   'update:activeMenu': [value: string]
 }>()
 
+const router = useRouter()
+
 const menuItems = [
   { key: 'songs', label: '音乐歌曲', icon: Music },
   { key: 'genres', label: '音乐类型', icon: Tag },
@@ -21,8 +23,18 @@ const menuItems = [
   { key: 'stats', label: '统计分析', icon: BarChart3 },
 ]
 
+const menuRouteMap: Record<string, string> = {
+  songs: '/admin/songs',
+  genres: '/admin/genres',
+  tags: '/admin/tags',
+  artists: '/admin/artists',
+  albums: '/admin/albums',
+  stats: '/admin/stats'
+}
+
 function selectMenu(key: string) {
   emit('update:activeMenu', key)
+  router.push(menuRouteMap[key])
 }
 </script>
 

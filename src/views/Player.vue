@@ -1,4 +1,4 @@
-run<script setup lang="ts">
+<script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
@@ -279,8 +279,6 @@ function goBack() {
       <div class="bg-earth-800/50 rounded-2xl border border-earth-700/50 p-6">
         <CommentSection v-if="currentSong" :song-id="currentSong.id" />
         <div v-else class="flex flex-col items-center justify-center h-96 text-earth-400">
-          <ListMusic class="w-16 h-16 mb-4" />
-          <p>选择一首歌曲查看评论</p>
           <ListMusic class="w-16 h-16 mb-4" />
           <p>选择一首歌曲查看评论</p>
         </div>

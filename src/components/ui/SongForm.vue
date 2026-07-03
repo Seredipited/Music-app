@@ -31,16 +31,20 @@ const errors = reactive<Partial<Record<keyof SongFormData, string>>>({})
 
 function validateForm(): boolean {
   Object.keys(errors).forEach(key => delete errors[key as keyof SongFormData])
-  
+
   if (!formData.name.trim()) errors.name = '请输入歌曲名称'
   if (!formData.artist.trim()) errors.artist = '请输入歌手名称'
   if (!formData.album.trim()) errors.album = '请输入专辑名称'
-  if (!formData.duration.trim()) errors.duration = '请输入歌曲时长（如：240）'
-  
+  const durationStr = String(formData.duration).trim()
+  if (!durationStr || isNaN(Number(durationStr)) || Number(durationStr) <= 0) {
+    errors.duration = '请输入有效的歌曲时长（如：240）'
+  }
+
   return Object.keys(errors).length === 0
 }
 
 function handleSubmit() {
+  formData.duration = String(formData.duration)
   if (validateForm()) {
     if (!formData.cover) {
       const covers = [

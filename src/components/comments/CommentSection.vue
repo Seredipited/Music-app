@@ -166,9 +166,9 @@ function loadMore() {
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1">
             <span class="font-medium text-sm">{{ comment.userName }}</span>
-            <span class="text-xs text-muted-foreground">{{ comment.time }}</span>
+            <span class="text-xs text-earth-400">{{ comment.time }}</span>
           </div>
-          <p class="text-sm text-muted-foreground leading-relaxed mb-2">
+          <p class="text-sm text-earth-400 leading-relaxed mb-2">
             {{ comment.content }}
           </p>
           <div class="flex items-center gap-4">
@@ -180,7 +180,7 @@ function loadMore() {
               <ThumbsUp class="w-4 h-4" :fill="comment.isLiked ? 'currentColor' : 'none'" />
               <span>{{ comment.liked }}</span>
             </button>
-            <button class="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+            <button class="flex items-center gap-1 text-xs text-earth-400 hover:text-primary transition-colors">
               <MessageCircle class="w-4 h-4" />
               回复
             </button>

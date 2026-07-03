@@ -102,7 +102,7 @@ function formatTime(seconds: number): string {
       >
         {{ song.name }}
       </h3>
-      <p class="text-xs text-muted-foreground truncate">{{ song.artist }}</p>
+      <p class="text-xs text-earth-400 truncate">{{ song.artist }}</p>
     </div>
   </div>
 </template>
