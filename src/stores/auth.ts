@@ -1,80 +1,74 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-
-export type UserRole = 'admin' | 'user'
-
-export interface AuthState {
-  isAuthenticated: boolean
-  role: UserRole | null
-  username: string
-}
+import { ref } from 'vue'
+import { loginApi, refreshTokenApi } from '@/lib/api'
 
 export const useAuthStore = defineStore('auth', () => {
-  const isAuthenticated = ref(false)
-  const role = ref<UserRole | null>(null)
+  const isAdmin = ref(false)
   const username = ref('')
+  const token = ref('')
+  const refreshToken = ref('')
 
-  const isAdmin = computed(() => isAuthenticated.value && role.value === 'admin')
-
-  function saveSession() {
-    const data: AuthState = {
-      isAuthenticated: isAuthenticated.value,
-      role: role.value,
-      username: username.value
-    }
-    localStorage.setItem('music_auth', JSON.stringify(data))
-  }
-
-  function restoreSession() {
-    const saved = localStorage.getItem('music_auth')
-    if (!saved) return
+  // 从 localStorage 恢复状态
+  const savedAuth = localStorage.getItem('music_auth')
+  if (savedAuth) {
     try {
-      const data: AuthState = JSON.parse(saved)
-      isAuthenticated.value = data.isAuthenticated
-      role.value = data.role
-      username.value = data.username
+      const parsed = JSON.parse(savedAuth)
+      isAdmin.value = parsed.isAdmin || false
+      username.value = parsed.username || ''
+      token.value = parsed.token || ''
+      refreshToken.value = parsed.refreshToken || ''
     } catch {
       localStorage.removeItem('music_auth')
     }
   }
 
+  function saveAuth() {
+    localStorage.setItem('music_auth', JSON.stringify({
+      isAdmin: isAdmin.value,
+      username: username.value,
+      token: token.value,
+      refreshToken: refreshToken.value
+    }))
+  }
+
   async function login(user: string, pass: string): Promise<boolean> {
-    await new Promise(resolve => setTimeout(resolve, 300))
-
-    if (user === 'admin' && pass === 'admin') {
-      isAuthenticated.value = true
-      role.value = 'admin'
-      username.value = user
-      saveSession()
-      return true
+    try {
+      const result = await loginApi(user, pass)
+      if (result.role === 'admin') {
+        isAdmin.value = true
+        username.value = result.username
+        token.value = result.token
+        refreshToken.value = result.refreshToken
+        saveAuth()
+        return true
+      }
+      return false
+    } catch {
+      return false
     }
+  }
 
-    if (user && pass) {
-      isAuthenticated.value = true
-      role.value = 'user'
-      username.value = user
-      saveSession()
+  // 尝试刷新 accessToken
+  async function refresh(): Promise<boolean> {
+    if (!refreshToken.value) return false
+    try {
+      const result = await refreshTokenApi(refreshToken.value)
+      token.value = result.token
+      saveAuth()
       return true
+    } catch {
+      logout()
+      return false
     }
-
-    return false
   }
 
   function logout() {
-    isAuthenticated.value = false
-    role.value = null
+    isAdmin.value = false
     username.value = ''
+    token.value = ''
+    refreshToken.value = ''
     localStorage.removeItem('music_auth')
   }
 
-  restoreSession()
-
-  return {
-    isAuthenticated,
-    role,
-    username,
-    isAdmin,
-    login,
-    logout
-  }
+  return { isAdmin, username, token, refreshToken, login, refresh, logout }
 })

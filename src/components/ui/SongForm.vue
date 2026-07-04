@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import { Music, User, Disc, Clock, Tag, Link } from 'lucide-vue-next'
+import { ref, reactive } from 'vue'
+import { Music, User, Disc, Clock, Tag } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   submit: [data: SongFormData]
@@ -14,7 +14,7 @@ export interface SongFormData {
   duration: string
   genre: string
   cover: string
-  audio: string
+  audioFile: File | null
 }
 
 const formData = reactive<SongFormData>({
@@ -24,13 +24,33 @@ const formData = reactive<SongFormData>({
   duration: '',
   genre: '',
   cover: '',
-  audio: ''
+  audioFile: null
 })
 
-const errors = reactive<Partial<Record<keyof SongFormData, string>>>({})
+const audioInputRef = ref<HTMLInputElement | null>(null)
+const audioFileName = ref('')
+
+const errors = reactive<Partial<Record<string, string>>>({})
+
+function onFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files.length > 0) {
+    const file = input.files[0]
+    if (!file.type.startsWith('audio/')) {
+      errors.audio = '请选择有效的音频文件'
+      return
+    }
+    formData.audioFile = file
+    audioFileName.value = file.name
+    delete errors.audio
+  } else {
+    formData.audioFile = null
+    audioFileName.value = ''
+  }
+}
 
 function validateForm(): boolean {
-  Object.keys(errors).forEach(key => delete errors[key as keyof SongFormData])
+  Object.keys(errors).forEach(key => delete errors[key])
 
   if (!formData.name.trim()) errors.name = '请输入歌曲名称'
   if (!formData.artist.trim()) errors.artist = '请输入歌手名称'
@@ -56,14 +76,21 @@ function handleSubmit() {
       ]
       formData.cover = covers[Math.floor(Math.random() * covers.length)]
     }
-    if (!formData.audio) formData.audio = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
     emit('submit', { ...formData })
   }
 }
 
 function handleReset() {
-  Object.assign(formData, { name: '', artist: '', album: '', duration: '', genre: '', cover: '', audio: '' })
-  Object.keys(errors).forEach(key => delete errors[key as keyof SongFormData])
+  formData.name = ''
+  formData.artist = ''
+  formData.album = ''
+  formData.duration = ''
+  formData.genre = ''
+  formData.cover = ''
+  formData.audioFile = null
+  audioFileName.value = ''
+  if (audioInputRef.value) audioInputRef.value.value = ''
+  Object.keys(errors).forEach(key => delete errors[key])
 }
 
 const genres = ['流行', '摇滚', '古典', '爵士', '民谣', '电子', '说唱', 'R&B', 'Hip-Hop', '其他']
@@ -175,16 +202,30 @@ function selectRandomCover() {
       <p class="mt-1 text-xs text-[#c0c4cc]">留空将随机分配封面</p>
     </div>
 
-    <!-- 音频链接 -->
+    <!-- 音频文件上传 (替代原音频链接字段) -->
     <div>
-      <label class="flex items-center gap-1.5 text-sm font-medium text-[#606266] mb-1.5">音频链接</label>
-      <input
-        v-model="formData.audio"
-        type="url"
-        placeholder="https://..."
-        class="w-full px-3 py-2 bg-white border border-[#dcdfe6] rounded-md text-[#303133] placeholder:text-[#c0c4cc] focus:outline-none focus:border-[#409eff] transition-colors text-sm"
-      />
-      <p class="mt-1 text-xs text-[#c0c4cc]">留空将使用默认音频</p>
+      <label class="flex items-center gap-1.5 text-sm font-medium text-[#606266] mb-1.5">
+        上传MP3文件
+      </label>
+      <div class="flex items-center gap-3">
+        <label class="flex items-center gap-1.5 px-4 py-2 bg-white border border-dashed border-[#dcdfe6] rounded-md text-[#606266] text-sm hover:border-[#409eff] hover:text-[#409eff] transition-colors cursor-pointer">
+          <Music class="w-4 h-4" />
+          选择音频文件
+          <input
+            ref="audioInputRef"
+            type="file"
+            accept="audio/mpeg,audio/mp3"
+            class="hidden"
+            @change="onFileChange"
+          />
+        </label>
+        <span v-if="audioFileName" class="text-sm text-[#409eff] max-w-[200px] truncate">
+          {{ audioFileName }}
+        </span>
+        <span v-else class="text-xs text-[#c0c4cc]">未选择文件（可选）</span>
+      </div>
+      <p v-if="errors.audio" class="mt-1 text-xs text-red-500">{{ errors.audio }}</p>
+      <p class="mt-1 text-xs text-[#c0c4cc]">支持 MP3 格式，文件直接存入数据库，无需外部链接</p>
     </div>
 
     <!-- 操作按钮 -->

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePlayerStore } from '@/stores/player'
-import { mockSongs } from '@/stores/data'
+import { fetchSongs } from '@/lib/api'
 import { Play, Pause, Disc3, Flame, Clock, Music2 } from 'lucide-vue-next'
 import type { Song } from '@/stores/types'
 import MusicCard from '@/components/music/MusicCard.vue'
@@ -21,11 +21,14 @@ const heroSong = computed(() => allSongs.value[0] || null)
 const revealedSections = ref(new Set<number>())
 let observer: IntersectionObserver | null = null
 
-onMounted(() => {
-  // 模拟延迟加载，触发入场动画
-  setTimeout(() => {
-    allSongs.value = [...mockSongs]
-  }, 100)
+onMounted(async () => {
+  // 从后端 API 加载歌曲
+  try {
+    allSongs.value = await fetchSongs()
+  } catch {
+    console.error('加载歌曲失败，请确保后端服务已启动')
+    allSongs.value = []
+  }
 
   // 滚动入场观察器
   observer = new IntersectionObserver(

@@ -6,6 +6,7 @@ export interface Song {
   cover: string
   audio: string
   duration: number
+  genre?: string
   lyrics?: string
 }
 

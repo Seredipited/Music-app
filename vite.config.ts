@@ -11,6 +11,13 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    allowedHosts: true
+    allowedHosts: true,
+    proxy: {
+      // 将前端 /api 请求代理到后端 Express 服务 (8080)
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      }
+    }
   }
 })

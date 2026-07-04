@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
-import { mockSongs, getComments, submitComment } from '@/stores/data'
+import { fetchSongs } from '@/lib/api'
 import CommentSection from '@/components/comments/CommentSection.vue'
 import { 
   ArrowLeft, Play, Pause, SkipBack, SkipForward,
@@ -16,8 +16,29 @@ const router = useRouter()
 const playerStore = usePlayerStore()
 
 const currentSong = ref<Song | null>(null)
+const allSongs = ref<Song[]>([])
 const isDragging = ref(false)
 const likedSongs = ref<number[]>([])
+
+onMounted(async () => {
+  try {
+    allSongs.value = await fetchSongs()
+  } catch {
+    allSongs.value = []
+  }
+  
+  // 路由参数加载歌曲
+  const id = route.params.id
+  if (id) {
+    const song = allSongs.value.find(s => s.id === Number(id))
+    if (song) {
+      currentSong.value = song
+      if (playerStore.currentSong?.id !== song.id) {
+        playerStore.setCurrentSong(song, allSongs.value)
+      }
+    }
+  }
+})
 
 const playModeIcon = computed(() => {
   switch (playerStore.playMode) {
@@ -37,15 +58,15 @@ const playModeText = computed(() => {
 
 watch(() => route.params.id, (id) => {
   if (id) {
-    const song = mockSongs.find(s => s.id === Number(id))
+    const song = allSongs.value.find(s => s.id === Number(id))
     if (song) {
       currentSong.value = song
       if (playerStore.currentSong?.id !== song.id) {
-        playerStore.setCurrentSong(song, mockSongs)
+        playerStore.setCurrentSong(song, allSongs.value)
       }
     }
   }
-}, { immediate: true })
+})
 
 watch(() => playerStore.currentSong, (song) => {
   if (song) {

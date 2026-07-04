@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { usePlayerStore } from '@/stores/player'
-import { mockSongs } from '@/stores/data'
 import { Play, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import type { Song } from '@/stores/types'
+import { fetchSongs, createSong } from '@/lib/api'
 import Dialog from '@/components/ui/Dialog.vue'
 import SongForm from '@/components/ui/SongForm.vue'
 import type { SongFormData } from '@/components/ui/SongForm.vue'
@@ -12,6 +12,7 @@ const playerStore = usePlayerStore()
 
 const allSongs = ref<Song[]>([])
 const searchQuery = ref('')
+const isLoading = ref(false)
 
 // Pagination
 const currentPage = ref(1)
@@ -21,8 +22,19 @@ const pageSize = ref(10)
 const showAddSongDialog = ref(false)
 
 onMounted(() => {
-  allSongs.value = [...mockSongs]
+  loadSongs()
 })
+
+async function loadSongs() {
+  isLoading.value = true
+  try {
+    allSongs.value = await fetchSongs()
+  } catch (err) {
+    console.error('加载歌曲失败:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const filteredSongs = computed(() => {
   if (!searchQuery.value) return allSongs.value
@@ -66,19 +78,26 @@ function handlePageChange(page: number) {
   currentPage.value = page
 }
 
-function handleAddSong(data: SongFormData) {
-  const newSong: Song = {
-    id: Date.now(),
-    name: data.name,
-    artist: data.artist,
-    album: data.album,
-    cover: data.cover,
-    audio: data.audio,
-    duration: parseInt(data.duration) || 240
+async function handleAddSong(data: SongFormData) {
+  const formData = new FormData()
+  formData.append('name', data.name)
+  formData.append('artist', data.artist)
+  formData.append('album', data.album)
+  formData.append('duration', data.duration)
+  formData.append('genre', data.genre)
+  formData.append('cover', data.cover)
+  if (data.audioFile) {
+    formData.append('audio', data.audioFile)
   }
-  allSongs.value = [newSong, ...allSongs.value]
-  currentPage.value = 1
-  showAddSongDialog.value = false
+
+  try {
+    const newSong = await createSong(formData)
+    allSongs.value = [newSong, ...allSongs.value]
+    currentPage.value = 1
+    showAddSongDialog.value = false
+  } catch (err) {
+    console.error('添加歌曲失败:', err)
+  }
 }
 </script>
 
@@ -124,8 +143,12 @@ function handleAddSong(data: SongFormData) {
         </tr>
       </thead>
       <tbody>
+        <tr v-if="isLoading">
+          <td colspan="8" class="px-5 py-12 text-center text-[#c0c4cc]">加载中...</td>
+        </tr>
         <tr
           v-for="(song, index) in pageSongs"
+          v-else
           :key="song.id"
           class="border-b border-[#ebeef5] last:border-0 hover:bg-blue-50/50 transition-colors group"
           :class="{ 'bg-primary/5': playerStore.currentSong?.id === song.id }"
@@ -147,7 +170,7 @@ function handleAddSong(data: SongFormData) {
           <td class="px-5 py-3.5 text-[#606266] truncate max-w-[150px]">{{ song.artist }}</td>
           <td class="px-5 py-3.5 text-[#606266] truncate max-w-[200px]">{{ song.album }}</td>
           <td class="px-5 py-3.5 text-[#909399]">{{ formatTime(song.duration) }}</td>
-          <td class="px-5 py-3.5 text-[#606266]">流行</td>
+          <td class="px-5 py-3.5 text-[#606266]">{{ song.genre || '流行' }}</td>
           <td class="px-5 py-3.5 text-[#909399]">{{ formatDate(new Date(2020 - (song.id % 7), ((song.id % 12) + 1), ((song.id % 28) + 1))) }}</td>
           <td class="px-5 py-3.5">
             <div class="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -161,9 +184,9 @@ function handleAddSong(data: SongFormData) {
             </div>
           </td>
         </tr>
-        <tr v-if="pageSongs.length === 0">
+        <tr v-if="pageSongs.length === 0 && !isLoading">
           <td colspan="8" class="px-5 py-12 text-center text-[#c0c4cc]">
-            暂无数据
+            暂无数据，请先上传歌曲或确保后端服务已启动
           </td>
         </tr>
       </tbody>

@@ -89,7 +89,16 @@ async function handleLogin() {
         </button>
       </form>
 
-      <div class="mt-6 text-center">
+      <!-- 默认账号提示 -->
+      <div class="mt-5 p-3 rounded-xl bg-primary-500/10 border border-primary-400/20 text-center">
+        <p class="text-primary-300 text-xs font-medium mb-1">🔑 默认管理员账号</p>
+        <p class="text-white/80 text-sm">
+          用户名：<span class="text-primary-300 font-semibold">admin</span>&nbsp;&nbsp;&nbsp;
+          密码：<span class="text-primary-300 font-semibold">112233</span>
+        </p>
+      </div>
+
+      <div class="mt-4 text-center">
         <RouterLink to="/" class="inline-flex items-center gap-1.5 text-sm text-ink-secondary hover:text-primary-300 transition-colors">
           <ArrowLeft class="w-3.5 h-3.5" />
           返回前端首页
