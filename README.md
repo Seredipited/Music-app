@@ -217,7 +217,19 @@ CREATE DATABASE music_app DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_
 npm run db:init
 ```
 
-### 4. 启动后端服务
+### 4. 导入音频数据
+
+歌曲元数据通过 `db:init` 已入库，但 MP3 音频文件不会直接提交到仓库（文件太大）。
+
+运行一键导入脚本，自动从 GitHub Release 下载音频种子并入库：
+
+```bash
+npm run setup:audio
+```
+
+> 如果 Release 暂不可用，你也可以手动把 MP3 文件放入 `server/seed/mp3/` 目录，然后运行 `npm run db:import`。
+
+### 5. 启动后端服务
 
 ```bash
 # 启动 Express 服务器（默认 http://localhost:8080）
@@ -227,7 +239,7 @@ npm run server
 npm run server:dev
 ```
 
-### 5. 启动前端开发服务器
+### 6. 启动前端开发服务器
 
 ```bash
 # 启动 Vite 开发服务器（默认 http://localhost:5173）
@@ -362,6 +374,7 @@ interface PlayerState {
 | `npm run server` | 启动 Express 后端服务器 |
 | `npm run server:dev` | 热重载模式启动后端 |
 | `npm run db:init` | 执行数据库初始化 |
+| `npm run setup:audio` | 自动下载并导入音频种子 |
 | `npm start` | 生产模式启动后端服务 |
 
 ---

@@ -11,6 +11,8 @@
     "server:dev": "node --watch server/index.js",
     "db:init": "node server/db/init.js",
     "db:import": "node server/seed/import-mp3.js",
+    "setup:audio": "node server/seed/download-audio.js",
+    "package:audio": "node server/seed/package-audio.js",
     "start": "node server/index.js"
   },
   "dependencies": {

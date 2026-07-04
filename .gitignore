@@ -31,3 +31,7 @@ npm-debug.log*
 # Temporary files
 tmp/
 temp/
+
+# Audio seed files (downloaded from GitHub Release, NOT in repo)
+server/seed/mp3/
+server/seed/audio-seed.zip
